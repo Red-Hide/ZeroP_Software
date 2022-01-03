@@ -1,5 +1,5 @@
 # ZeroP Software
-Software for ZeroP
+Software our school project ZeroP Plastic Crusher
 
 # How to use :
 
