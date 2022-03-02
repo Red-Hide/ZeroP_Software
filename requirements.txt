@@ -1,2 +1,4 @@
-PyQt5==5.15.6
-screeninfo==0.8
+PyQt5 == 5.14.1
+gpiozero == 1.6.2
+screeninfo == 0.8
+wiringpi == 2.60.1
