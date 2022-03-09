@@ -15,6 +15,8 @@ from screeninfo import get_monitors
 import os
 import json
 from time import sleep
+import threading
+import Sensors
 
 
 class Ui_Dialog(object):
@@ -305,6 +307,14 @@ class Ui_Dialog(object):
         self.retranslateUi(Dialog)
         self.Main.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
+        self.UpdateTimer = QtCore.QTimer()
+        self.UpdateTimer.setInterval(100)
+        self.UpdateTimer.timeout.connect(self.TimerUpdate)
+        self.UpdateTimer.start()
+        self.Test = QtCore.QTimer()
+        self.Test.setInterval(500)
+        self.Test.timeout.connect(self.TestLoop)
+        #self.Test.start()
         Dialog.setTabOrder(self.pushButton_9, self.pushButton_10)
         Dialog.setTabOrder(self.pushButton_10, self.Programme_S)
         Dialog.setTabOrder(self.Programme_S, self.pushButton_3)
@@ -359,6 +369,15 @@ class Ui_Dialog(object):
         self.pushButton_8.setText(_translate("Dialog", "Save"))
         self.Main.setTabText(self.Main.indexOf(self.Programme), _translate("Dialog", "Programme"))
 
+
+    def TestLoop(self):
+        while True:
+            print("Testing Loop")
+            sleep(1)
+
+    def TimerUpdate(self):
+        print("Testing Timer")
+
     def ComboBoxUpdate(self):
         self.SelectedProg = self.Programme_S.currentIndex()
         self.UpdateUIValues()
@@ -382,7 +401,8 @@ class Ui_Dialog(object):
         elif Button == 2:
             self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Température"] = self.spinBox_3.value()
         elif Button == 3:
-            self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Ventilateur"] = self.spinBox_4.value()         
+            self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Ventilateur"] = self.spinBox_4.value()
+        print("Saving values")         
         self.UpdateUIValues()
         self.UpdateFile()
 
