@@ -52,7 +52,7 @@ class Ui_Dialog(object):
         for i in Names:
             path = "./Data/" + i + ".json"
             if not os.path.exists(path):
-                file = open(path , 'w+')
+                file = open(path , 'w')
                 json.dump(self.DataTemplate, file, indent = 4)
                 self.ProgValues[i] = self.DataTemplate
                 print(self.ProgValues[i])
@@ -65,7 +65,7 @@ class Ui_Dialog(object):
     def UpdateFile(self):
         for i in self.SelectedProgName:
             path = "./Data/" + i + ".json"
-            file = open(path , 'w+')
+            file = open(path , 'w')
             json.dump(self.ProgValues[i], file, indent = 4)
 
     def ExportToFile(self):
