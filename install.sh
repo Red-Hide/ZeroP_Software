@@ -3,7 +3,7 @@
 #Install dependencies
 
 sudo apt update && sudo apt upgrade
-sudo apt install python3 git-core qt5-default pigpio
+sudo apt install python3 git-core python3-pyqt5 pigpio
 sudo systemctl enable pigpiod
 sudo systemctl start pigpiod
 git clone https://github.com/Red-Hide/ZeroP_Software.git
