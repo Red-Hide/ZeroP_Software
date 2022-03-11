@@ -11,22 +11,42 @@
 from genericpath import exists
 from typing import Dict
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QApplication, QMessageBox
 from screeninfo import get_monitors
 import os
+import sys
 import json
 from time import sleep
+import pigpio as GPIO
 import threading
 import Sensors
 
-
 class Ui_Dialog(object):
+
+    #Software
+
     h = None
     w = None
     Monitors = None
+
+
     DataTemplate = None
     ProgValues = None
     SelectedProgName = None
     SelectedProg = None
+    Caliper_Value = None
+    g_level = None
+    g_reading = None
+    g_bits = None
+
+    Started = None
+
+    #Hardware
+    Caliper_Data = None
+    Caliper_Clock = None
+    Relay = None
+    TempSensor = None
+    
 
     def __init__(self):
         self.Monitors = get_monitors()
@@ -35,16 +55,29 @@ class Ui_Dialog(object):
         self.ProgValues = {}
         self.SelectedProgName = ["Prog1","Prog2","Prog3","Prog4"]
         self.SelectedProg = 0
-        self.DataTemplate = { "Moteur1": 250, "Moteur2": 450, "Température": 70, "Ventilateur": 700}
+        self.DataTemplate = { "Moteur1": 250, "Température": 70, "Ventilateur": 700}
+        self.Started = False
+
         self.getData()
+        self.SetupPins()
+        
+    def SetupPins(self):
+        self.Relay = 4
+        self.Caliper_Data = 20
+        self.Caliper_Clock = 21
+        return
+
+
 
     def getRectPxWidth(self, px):
         width = self.w * (px/621)
-        return width
+        return int(width)
 
     def getRectPxHeight(self, px):
         height = self.h * (px/331)
-        return height
+        return int(height)
+
+
 
     def getData(self):
         Names = ["Prog1","Prog2","Prog3","Prog4"]
@@ -54,7 +87,7 @@ class Ui_Dialog(object):
         for i in Names:
             path = "./Data/" + i + ".json"
             if not os.path.exists(path):
-                file = open(path , 'w+')
+                file = open(path , 'w')
                 json.dump(self.DataTemplate, file, indent = 4)
                 self.ProgValues[i] = self.DataTemplate
                 print(self.ProgValues[i])
@@ -64,10 +97,12 @@ class Ui_Dialog(object):
                 self.ProgValues[i] = Data
                 print(self.ProgValues[i])
     
+
+
     def UpdateFile(self):
         for i in self.SelectedProgName:
             path = "./Data/" + i + ".json"
-            file = open(path , 'w+')
+            file = open(path , 'w')
             json.dump(self.ProgValues[i], file, indent = 4)
 
     def ExportToFile(self):
@@ -92,6 +127,8 @@ class Ui_Dialog(object):
             self.UpdateFile()
         except:
             pass
+
+
 
 
     def setupUi(self, Dialog):
@@ -120,11 +157,8 @@ class Ui_Dialog(object):
         self.label.setObjectName("Mesures actuelles :")
         self.verticalLayout.addWidget(self.label)
         self.label_2 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        self.label_2.setObjectName("Moteur 1 :")
+        self.label_2.setObjectName("Moteur :")
         self.verticalLayout.addWidget(self.label_2)
-        self.label_3 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        self.label_3.setObjectName("Moteur 2 :")
-        self.verticalLayout.addWidget(self.label_3)
         self.label_4 = QtWidgets.QLabel(self.horizontalLayoutWidget)
         self.label_4.setObjectName("Température :")
         self.verticalLayout.addWidget(self.label_4)
@@ -134,16 +168,9 @@ class Ui_Dialog(object):
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.label_6 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        self.label_6.setText("")
-        self.label_6.setObjectName("Blank")
-        self.verticalLayout_2.addWidget(self.label_6)
         self.label_7 = QtWidgets.QLabel(self.horizontalLayoutWidget)
         self.label_7.setObjectName("Val Moteur1")
         self.verticalLayout_2.addWidget(self.label_7)
-        self.label_8 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        self.label_8.setObjectName("Val Moteur2")
-        self.verticalLayout_2.addWidget(self.label_8)
         self.label_9 = QtWidgets.QLabel(self.horizontalLayoutWidget)
         self.label_9.setObjectName("Val Température")
         self.verticalLayout_2.addWidget(self.label_9)
@@ -165,9 +192,6 @@ class Ui_Dialog(object):
         self.label_11 = QtWidgets.QLabel(self.horizontalLayoutWidget_2)
         self.label_11.setObjectName("Moteur1")
         self.verticalLayout_3.addWidget(self.label_11)
-        self.label_12 = QtWidgets.QLabel(self.horizontalLayoutWidget_2)
-        self.label_12.setObjectName("Moteur2")
-        self.verticalLayout_3.addWidget(self.label_12)
         self.label_13 = QtWidgets.QLabel(self.horizontalLayoutWidget_2)
         self.label_13.setObjectName("Température")
         self.verticalLayout_3.addWidget(self.label_13)
@@ -184,9 +208,6 @@ class Ui_Dialog(object):
         self.label_16 = QtWidgets.QLabel(self.horizontalLayoutWidget_2)
         self.label_16.setObjectName("Val Moteur1")
         self.verticalLayout_4.addWidget(self.label_16)
-        self.label_17 = QtWidgets.QLabel(self.horizontalLayoutWidget_2)
-        self.label_17.setObjectName("Val Moteur2")
-        self.verticalLayout_4.addWidget(self.label_17)
         self.label_18 = QtWidgets.QLabel(self.horizontalLayoutWidget_2)
         self.label_18.setObjectName("Val Température")
         self.verticalLayout_4.addWidget(self.label_18)
@@ -203,10 +224,12 @@ class Ui_Dialog(object):
         self.pushButton_9 = QtWidgets.QPushButton(self.horizontalLayoutWidget_3)
         self.pushButton_9.setObjectName("Start Button")
         self.pushButton_9.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.pushButton_9.clicked.connect(self.StartButton)
         self.horizontalLayout_8.addWidget(self.pushButton_9)
         self.pushButton_10 = QtWidgets.QPushButton(self.horizontalLayoutWidget_3)
         self.pushButton_10.setObjectName("Stop Button")
         self.pushButton_10.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.pushButton_10.clicked.connect(self.StopButton)
         self.horizontalLayout_8.addWidget(self.pushButton_10)
         self.Main.addTab(self.Mesures, "")
         self.Programme = QtWidgets.QWidget()
@@ -253,22 +276,6 @@ class Ui_Dialog(object):
         self.pushButton_5.clicked.connect(lambda i: self.SaveValues(0))
         self.horizontalLayout_6.addWidget(self.pushButton_5)
         self.verticalLayout_5.addLayout(self.horizontalLayout_6)
-        self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
-        self.label_22 = QtWidgets.QLabel(self.verticalLayoutWidget)
-        self.label_22.setObjectName("Moteur2")
-        self.horizontalLayout_7.addWidget(self.label_22)
-        self.spinBox_2 = QtWidgets.QSpinBox(self.verticalLayoutWidget)
-        self.spinBox_2.setObjectName("Val Moteur2 Spin")
-        self.spinBox_2.setRange(200,2000)
-        self.spinBox_2.setValue(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur2"])
-        self.spinBox_2.setSuffix(" RPM")
-        self.horizontalLayout_7.addWidget(self.spinBox_2)
-        self.pushButton_6 = QtWidgets.QPushButton(self.verticalLayoutWidget)
-        self.pushButton_6.setObjectName("Save")
-        self.pushButton_6.clicked.connect(lambda i: self.SaveValues(1))
-        self.horizontalLayout_7.addWidget(self.pushButton_6)
-        self.verticalLayout_5.addLayout(self.horizontalLayout_7)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
         self.label_23 = QtWidgets.QLabel(self.verticalLayoutWidget)
@@ -306,24 +313,18 @@ class Ui_Dialog(object):
 
         self.retranslateUi(Dialog)
         self.Main.setCurrentIndex(0)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
         self.UpdateTimer = QtCore.QTimer()
         self.UpdateTimer.setInterval(100)
         self.UpdateTimer.timeout.connect(self.TimerUpdate)
         self.UpdateTimer.start()
-        self.Test = QtCore.QTimer()
-        self.Test.setInterval(500)
-        self.Test.timeout.connect(self.TestLoop)
-        #self.Test.start()
+        QtCore.QMetaObject.connectSlotsByName(Dialog)
         Dialog.setTabOrder(self.pushButton_9, self.pushButton_10)
         Dialog.setTabOrder(self.pushButton_10, self.Programme_S)
         Dialog.setTabOrder(self.Programme_S, self.pushButton_3)
         Dialog.setTabOrder(self.pushButton_3, self.pushButton_4)
         Dialog.setTabOrder(self.pushButton_4, self.spinBox)
         Dialog.setTabOrder(self.spinBox, self.pushButton_5)
-        Dialog.setTabOrder(self.pushButton_5, self.spinBox_2)
-        Dialog.setTabOrder(self.spinBox_2, self.pushButton_6)
-        Dialog.setTabOrder(self.pushButton_6, self.spinBox_3)
+        Dialog.setTabOrder(self.pushButton_5, self.spinBox_3)
         Dialog.setTabOrder(self.spinBox_3, self.pushButton_7)
         Dialog.setTabOrder(self.pushButton_7, self.spinBox_4)
         Dialog.setTabOrder(self.spinBox_4, self.pushButton_8)
@@ -333,21 +334,17 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
         self.label.setText(_translate("Dialog", "Mesures actuelles :"))
-        self.label_2.setText(_translate("Dialog", "Moteur 1 :"))
-        self.label_3.setText(_translate("Dialog", "Moteur 2 :"))
+        self.label_2.setText(_translate("Dialog", "Moteur :"))
         self.label_4.setText(_translate("Dialog", "Température :"))
         self.label_5.setText(_translate("Dialog", "Ventilateur :"))
         self.label_7.setText(_translate("Dialog", "TextLabel"))
-        self.label_8.setText(_translate("Dialog", "TextLabel"))
         self.label_9.setText(_translate("Dialog", "TextLabel"))
         self.label_20.setText(_translate("Dialog", "TextLabel"))
         self.label_10.setText(_translate("Dialog", "Mesures programmées"))
-        self.label_11.setText(_translate("Dialog", "Moteur 1 :"))
-        self.label_12.setText(_translate("Dialog", "Moteur 2 :"))
+        self.label_11.setText(_translate("Dialog", "Moteur :"))
         self.label_13.setText(_translate("Dialog", "Température :"))
         self.label_14.setText(_translate("Dialog", "Ventilateur :"))
         self.label_16.setText(_translate("Dialog", str(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur1"]) + " RPM"))
-        self.label_17.setText(_translate("Dialog", str(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur2"]) + " RPM"))
         self.label_18.setText(_translate("Dialog", str(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Température"]) + " °C"))
         self.label_19.setText(_translate("Dialog", str(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Ventilateur"]) + " RPM"))
         self.pushButton_9.setText(_translate("Dialog", "Start"))
@@ -359,24 +356,13 @@ class Ui_Dialog(object):
         self.Programme_S.setItemText(3, _translate("Dialog", "P4"))
         self.pushButton_3.setText(_translate("Dialog", "Load"))
         self.pushButton_4.setText(_translate("Dialog", "Export"))
-        self.label_21.setText(_translate("Dialog", "Moteur 1 :"))
+        self.label_21.setText(_translate("Dialog", "Moteur :"))
         self.pushButton_5.setText(_translate("Dialog", "Save"))
-        self.label_22.setText(_translate("Dialog", "Moteur 2 :"))
-        self.pushButton_6.setText(_translate("Dialog", "Save"))
         self.label_23.setText(_translate("Dialog", "Température :"))
         self.pushButton_7.setText(_translate("Dialog", "Save"))
         self.label_24.setText(_translate("Dialog", "Ventilateur :"))
         self.pushButton_8.setText(_translate("Dialog", "Save"))
         self.Main.setTabText(self.Main.indexOf(self.Programme), _translate("Dialog", "Programme"))
-
-
-    def TestLoop(self):
-        while True:
-            print("Testing Loop")
-            sleep(1)
-
-    def TimerUpdate(self):
-        print("Testing Timer")
 
     def ComboBoxUpdate(self):
         self.SelectedProg = self.Programme_S.currentIndex()
@@ -386,24 +372,57 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         self.label_16.setText(_translate("Dialog", str(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur1"]) + " RPM"))
         self.spinBox.setValue(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur1"])
-        self.label_17.setText(_translate("Dialog", str(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur2"]) + " RPM"))
-        self.spinBox_2.setValue(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur2"])
         self.label_18.setText(_translate("Dialog", str(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Température"]) + " °C"))
         self.spinBox_3.setValue(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Température"])
         self.label_19.setText(_translate("Dialog", str(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Ventilateur"]) + " RPM"))
         self.spinBox_4.setValue(self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Ventilateur"])
+    
+    def UpdateSensorValues(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.label_16.setText(_translate("Dialog", str() + " RPM"))
+        self.label_18.setText(_translate("Dialog", str(self.SensorValues["Température"]) + " °C"))
+        self.label_19.setText(_translate("Dialog", str() + " RPM"))
 
     def SaveValues(self,Button):
         if Button == 0:
             self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur1"] = self.spinBox.value()
-        elif Button == 1:
-            self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Moteur2"] = self.spinBox_2.value()
         elif Button == 2:
             self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Température"] = self.spinBox_3.value()
         elif Button == 3:
-            self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Ventilateur"] = self.spinBox_4.value()
-        print("Saving values")         
+            self.ProgValues[self.SelectedProgName[self.SelectedProg]]["Ventilateur"] = self.spinBox_4.value()         
         self.UpdateUIValues()
         self.UpdateFile()
 
+    def TimerUpdate(self):
+        self.SensorValues = self.GetSensorValues()
+        if self.Started == True:
+            self.Working()
+        print("Looping")
 
+    def StartButton(self):
+        self.Started = True
+        print(self.Started)
+
+    def StopButton(self):
+        self.Started = False
+        print(self.Started)
+
+    def Working(self):
+        if self.SensorValues["Sécurisé"] == True:
+            print("Working")
+        else:
+            self.Started = False
+            self.SendError()
+
+    def SendError(self):
+        self.msg = QMessageBox()
+        self.msg.setIcon(QMessageBox.Critical)
+        self.msg.setText("Alerte de sécurité \nVeuillez fermer l'entonnoire pour continuer")
+        self.msg.setWindowTitle("Entonnoir ouvert")
+        self.msg.exec_()
+
+    def ResetComposants(self):
+        self.Relay.off()
+
+
+#Ckeck each time timer goes if open or not 
