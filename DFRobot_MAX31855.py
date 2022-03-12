@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 import time
 import sys
-import wiringpi
+import pigpio as GPIO
 
 MAX31855_ADDR = 0x10
 
+pi = GPIO.pi()
+
 class DFRobot_MAX31855:
   def __init__(self):
-    self.i2c = wiringpi.wiringPiI2CSetup(MAX31855_ADDR)
+    self.i2c = pi.i2c_open(1,MAX31855_ADDR)
   
   def readData(self):
-    a = wiringpi.wiringPiI2CReadReg8(self.i2c,0x00)
-    b = wiringpi.wiringPiI2CReadReg8(self.i2c,0x01)
-#    c = wiringpi.wiringPiI2CReadReg8(self.i2c,0x02)
-    d = wiringpi.wiringPiI2CReadReg8(self.i2c,0x03)
+    a = pi.i2c_read_byte_data(self.i2c.handle, 0x00)
+    b = pi.i2c_read_byte_data(self.i2c.handle, 0x01)
+#    c = pi.i2c_read_byte_data(self.i2c.handle, 0x02)
+    d = pi.i2c_read_byte_data(self.i2c.handle, 0x03)
     return a,b,d
   
   def readCelsius(self):
