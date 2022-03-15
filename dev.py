@@ -394,7 +394,7 @@ class Ui_Dialog(object):
         self.UpdateFile()
 
     def TimerUpdate(self):
-        self.SensorValues = self.GetSensorValues()
+        self.SensorValues = Sensors.GetSensorValues()
         if self.Started == True:
             self.Working()
         print("Looping")
