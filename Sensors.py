@@ -1,23 +1,45 @@
 from base64 import decode
-import DFRobot_MAX31855
 import pigpio as GPIO
 import time
 import sys
 from datetime import datetime
 
+MAX31855_ADDR = 0x10
+
 pi = GPIO.pi()
 
-MAX31855_ADDR = 0x10
+class DFRobot_MAX31855:
+  def __init__(self):
+    self.i2c = pi.i2c_open(1,MAX31855_ADDR)
+  
+  def readData(self):
+    a = pi.i2c_read_byte_data(self.i2c.handle, 0x00)
+    b = pi.i2c_read_byte_data(self.i2c.handle, 0x01)
+#    c = pi.i2c_read_byte_data(self.i2c.handle, 0x02)
+    d = pi.i2c_read_byte_data(self.i2c.handle, 0x03)
+    return a,b,d
+  
+  def readCelsius(self):
+    a,b,d = self.readData()
+    if(d&0x7):
+      return False
+    if(a&0x80):
+      a = 0xff - a
+      b = 0xff - b
+      temp = -((((a << 8) | b) >> 2)+1)*0.25
+      return temp
+    temp = (((a << 8) | b) >> 2)*0.25
+    return temp
 
 Caliper_DataPin = 16
 Caliper_ClkPin = 18
-
-TempSensor = DFRobot_MAX31855()
 SafeGuard = 17
 
 pi.set_mode(Caliper_DataPin, GPIO.INPUT)
 pi.set_mode(Caliper_ClkPin, GPIO.INPUT)
 pi.set_mode(SafeGuard, GPIO.INPUT)
+
+TempSensor = DFRobot_MAX31855()
 
 def GetSensorValues():
     CouvercleState = pi.read(SafeGuard)           # A tester et changer
@@ -51,25 +73,3 @@ def decode():
     result = (value*sign)/100
     return result
 
-class DFRobot_MAX31855:
-  def __init__(self):
-    self.i2c = pi.i2c_open(1,MAX31855_ADDR)
-  
-  def readData(self):
-    a = pi.i2c_read_byte_data(self.i2c.handle, 0x00)
-    b = pi.i2c_read_byte_data(self.i2c.handle, 0x01)
-#    c = pi.i2c_read_byte_data(self.i2c.handle, 0x02)
-    d = pi.i2c_read_byte_data(self.i2c.handle, 0x03)
-    return a,b,d
-  
-  def readCelsius(self):
-    a,b,d = self.readData()
-    if(d&0x7):
-      return False
-    if(a&0x80):
-      a = 0xff - a
-      b = 0xff - b
-      temp = -((((a << 8) | b) >> 2)+1)*0.25
-      return temp
-    temp = (((a << 8) | b) >> 2)*0.25
-    return temp
