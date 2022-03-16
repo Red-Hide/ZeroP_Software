@@ -1,4 +1,3 @@
-from base64 import decode
 import pigpio as GPIO
 import time
 import sys
@@ -44,7 +43,7 @@ TempSensor = DFRobot_MAX31855()
 def GetSensorValues():
     CouvercleState = pi.read(SafeGuard)           # A tester et changer
     Temp = float(TempSensor.readCelsius())
-    return { "Sécurisé": CouvercleState, "Température": Temp}
+    return { "Sécurisé": CouvercleState, "Température": Temp} # Could use fonctions instead of storing data in variables and could replace with tuples
 
 def CaliperData():
     while True:
