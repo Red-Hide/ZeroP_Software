@@ -9,5 +9,3 @@ sudo systemctl start pigpiod
 git clone https://github.com/Red-Hide/ZeroP_Software.git
 cd ZeroP_Software
 pip3 install -r requirements.txt
-
-
