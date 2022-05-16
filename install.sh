@@ -8,5 +8,5 @@ sudo systemctl enable pigpiod
 sudo systemctl start pigpiod
 git clone -b dev https://github.com/Red-Hide/ZeroP_Software.git
 cd ZeroP_Software
-sudo bash ./LCD5-show
+sudo bash ./LCD-show-master/LCD5-show
 pip3 install -r requirements.txt
