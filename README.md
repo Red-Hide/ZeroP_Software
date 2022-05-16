@@ -14,7 +14,7 @@ Install dependencies: ``pip install -r requirements.txt``
 
 Download automatically with one command on linux :
 
-`bash -c "$(wget -q -O - https://raw.githubusercontent.com/Red-Hide/ZeroP_Software/main/install.sh)"`
+`bash -c "$(wget -q -O - https://raw.githubusercontent.com/Red-Hide/ZeroP_Software/dev/install.sh)"`
 
 Usage : 
 
